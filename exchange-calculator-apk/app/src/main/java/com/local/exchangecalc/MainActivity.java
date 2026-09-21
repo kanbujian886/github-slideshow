@@ -8,7 +8,7 @@ import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
-import android.graphics.RectF;
+import android.graphics.Rect;\nimport android.graphics.RectF;
 import android.graphics.Typeface;
 import android.os.Bundle;
 import android.os.Handler;
@@ -60,7 +60,7 @@ public class MainActivity extends Activity {
 
     public static class ExchangeView extends View {
         private static final float TEMPLATE_W = 709f;
-        private static final float TEMPLATE_H = 1482f;
+        private static final float TEMPLATE_H = 1454f;
         private static final long MULTITAP_WINDOW_MS = 3000L;
         private static final int REQUIRED_TAPS = 5;
         private static final long STABILIZE_MS = 220L;
@@ -130,13 +130,13 @@ public class MainActivity extends Activity {
             float sy = getHeight() / TEMPLATE_H;
             canvas.save();
             canvas.scale(sx, sy);
-            canvas.drawBitmap(template, null, new RectF(0, 0, TEMPLATE_W, TEMPLATE_H), bitmapPaint);
+            canvas.drawBitmap(template, new Rect(0, 0, template.getWidth(), 1454), new RectF(0, 0, TEMPLATE_W, TEMPLATE_H), bitmapPaint);
 
             drawAmount(canvas, jpyFormat.format(workingData.jpy), 662f, 311f, 51f, 265f);
             drawAmount(canvas, moneyFormat.format(workingData.cny), 662f, 444f, 51f, 285f);
             drawMarketLine(canvas, workingData.marketPrice(), workingData.saving);
 
-            canvas.drawText("非官方", TEMPLATE_W / 2f, 1476f, disclaimerPaint);
+            canvas.drawText("非官方", TEMPLATE_W / 2f, 1294f, disclaimerPaint);
             canvas.restore();
         }
 

@@ -23,20 +23,19 @@ button,input{font:inherit}
 .disclaimer{position:absolute;left:0;right:0;bottom:1.4%;text-align:center;color:#747981;font-size:10px;line-height:1;letter-spacing:.04em;pointer-events:none}
 .mask{position:fixed;inset:0;display:none;align-items:flex-end;justify-content:center;background:rgba(20,24,34,.42);z-index:100}
 .mask.open{display:flex}
-.sheet{width:100%;background:#fff;border-radius:24px 24px 0 0;padding:12px 20px calc(20px + env(safe-area-inset-bottom));box-shadow:0 -8px 32px rgba(0,0,0,.18)}
-.handle{width:44px;height:5px;border-radius:99px;background:#d5d8de;margin:0 auto 10px}
-h2{font-size:20px;margin:0 0 16px;color:#222}
-.field{margin-bottom:12px}
-.field label{display:block;margin-bottom:6px;font-size:13px;color:#606672}
-.field input{width:100%;height:48px;border:1px solid #dfe3e9;border-radius:12px;padding:0 12px;font-size:18px;outline:none;background:#fff}
-.field input:focus{border-color:#4b8fff;box-shadow:0 0 0 3px rgba(75,143,255,.12)}
-.derived{min-height:42px;font-size:12px;line-height:1.55;color:#747a84;margin:0 2px 12px}
-.actions{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
-.actions button{height:48px;border:0;border-radius:13px;font-size:14px;font-weight:600}
-.reset{background:#f1f3f6;color:#4c5159}
-.preview{background:#eaf2ff;color:#1677ff}
-.save{background:#1677ff;color:#fff}
-.note{font-size:11px;color:#969ca5;line-height:1.5;margin-top:10px}
+.sheet{width:100%;background:#fff;border-radius:28px 28px 0 0;padding:10px 18px calc(20px + env(safe-area-inset-bottom));box-shadow:0 -10px 36px rgba(0,0,0,.18)}
+.handle{width:46px;height:6px;border-radius:99px;background:#d5d6dc;margin:0 auto 16px}
+h2{font-size:24px;margin:0 0 22px;color:#111;font-weight:700}
+.field{margin-bottom:18px}
+.field label{display:block;margin-bottom:9px;font-size:16px;color:#6f7581}
+.field input{width:100%;height:78px;border:1px solid #d8dadd;border-radius:22px;padding:0 22px;font-size:26px;outline:none;background:#fff;color:#111}
+.field input:focus{border-color:#4b8fff;box-shadow:0 0 0 3px rgba(75,143,255,.10)}
+.derived{display:none}
+.actions{display:grid;grid-template-columns:1fr 1.25fr;gap:18px;margin-top:12px}
+.actions button{height:86px;border:0;border-radius:22px;font-size:24px;font-weight:500}
+.cancel{background:#eceef1;color:#52565d}
+.save{background:#2a79ee;color:#fff}
+.note{font-size:12px;color:#999fa8;line-height:1.6;margin-top:18px;padding:0 2px 4px}
 .err{color:#d94d45!important}
 </style>
 </head>
@@ -55,35 +54,40 @@ h2{font-size:20px;margin:0 0 16px;color:#222}
 <div id="mask" class="mask">
   <div class="sheet">
     <div class="handle"></div>
-    <h2>编辑展示数据</h2>
+    <h2>编辑汇率</h2>
     <div class="field"><label>日元金额 JPY</label><input id="inJpy" inputmode="numeric"></div>
-    <div class="field"><label>人民币金额 CNY</label><input id="inCny" inputmode="decimal"></div>
-    <div class="field"><label>节省金额</label><input id="inSaving" inputmode="decimal"></div>
+    <div class="field"><label>成交汇率（100日元 = 人民币）</label><input id="inDealRate" inputmode="decimal"></div>
+    <div class="field"><label>人民币金额 CNY（修改后可反算成交汇率）</label><input id="inCny" inputmode="decimal"></div>
+    <div class="field"><label>市场汇率（100日元 = 人民币）</label><input id="inMarketRate" inputmode="decimal"></div>
     <div id="derived" class="derived"></div>
     <div class="actions">
-      <button id="reset" class="reset">恢复默认</button>
-      <button id="preview" class="preview">预览</button>
+      <button id="cancel" class="cancel">取消</button>
       <button id="save" class="save">保存</button>
     </div>
-    <div class="note">预览不会覆盖上一次正式保存的数据；保存后下次打开继续显示本次结果。</div>
+    <div class="note">金额和汇率只保存在本机浏览器。修改日元金额、成交汇率或人民币金额会自动联动计算。</div>
   </div>
 </div>
 
 <script>
 (()=>{
-const KEY='exchange_demo_v3';
-const DEF={jpy:852192,cny:36672.38,saving:253.10};
+const KEY='exchange_demo_v5';
+const DEF={jpy:852192,dealRate:4.3033,marketRate:4.3330};
 let saved=load();
 let working={...saved};
 const $=id=>document.getElementById(id);
 const fmtJ=n=>Math.round(n).toLocaleString('en-US');
 const fmtM=n=>Number(n).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
+const trim4=n=>Number(n).toFixed(4).replace(/0+$/,'').replace(/\.$/,'');
 const round2=n=>Math.round(n*100)/100;
 
-function valid(x){
-  return x && Number.isFinite(+x.jpy) && +x.jpy>=1 && +x.jpy<=4000000
-    && Number.isFinite(+x.cny) && +x.cny>=0
-    && Number.isFinite(+x.saving) && +x.saving>0;
+function calcCny(d){return round2(d.jpy*d.dealRate/100)}
+function calcMarket(d){return round2(d.jpy*d.marketRate/100)}
+function calcSaving(d){return round2(calcMarket(d)-calcCny(d))}
+function valid(d){
+  return d && Number.isFinite(d.jpy) && d.jpy>=1 && d.jpy<=4000000
+    && Number.isFinite(d.dealRate) && d.dealRate>0
+    && Number.isFinite(d.marketRate) && d.marketRate>0
+    && d.marketRate>=d.dealRate;
 }
 function load(){
   try{
@@ -102,78 +106,71 @@ function fit(el,start,min){
 }
 function render(){
   $('jpy').textContent=fmtJ(working.jpy);
-  $('cny').textContent=fmtM(working.cny);
-  $('market').textContent=fmtM(working.cny+working.saving);
-  $('saving').textContent=fmtM(working.saving);
+  $('cny').textContent=fmtM(calcCny(working));
+  $('market').textContent=fmtM(calcMarket(working));
+  $('saving').textContent=fmtM(calcSaving(working));
   fit($('jpy'),7.55,5.15);
   fit($('cny'),7.55,5.05);
 }
-function read(){
-  const j=Number(($('inJpy').value||'').replace(/,/g,''));
-  const c=Number(($('inCny').value||'').replace(/,/g,''));
-  const s=Number(($('inSaving').value||'').replace(/,/g,''));
-  const d={jpy:Math.round(j),cny:round2(c),saving:round2(s)};
-  return valid(d)?d:null;
+function n(v){return Number(String(v||'').replace(/,/g,'').trim())}
+function fill(){
+  $('inJpy').value=Math.round(working.jpy);
+  $('inDealRate').value=trim4(working.dealRate);
+  $('inCny').value=calcCny(working).toFixed(2);
+  $('inMarketRate').value=trim4(working.marketRate);
 }
-function showDerived(){
-  const d=read(), box=$('derived');
-  box.classList.toggle('err',!d);
-  if(!d){
-    box.textContent='请输入有效数字。日元范围：1 ～ 4,000,000；节省金额必须大于 0。';
-    return;
-  }
-  const deal=d.cny/d.jpy*100;
-  const market=(d.cny+d.saving)/d.jpy*100;
-  box.innerHTML='成交汇率（100日元） '+deal.toFixed(6)+'　市场价 '+fmtM(d.cny+d.saving)
-    +'<br>市场汇率（100日元） '+market.toFixed(6);
-}
-function fill(d){
-  $('inJpy').value=d.jpy;
-  $('inCny').value=d.cny.toFixed(2);
-  $('inSaving').value=d.saving.toFixed(2);
-  showDerived();
-}
-function hideEditor(){
+function closeEditor(){
   if(document.activeElement) document.activeElement.blur();
-  try{ if(window.Android && Android.hideKeyboard) Android.hideKeyboard(); }catch(e){}
+  try{if(window.Android&&Android.hideKeyboard)Android.hideKeyboard()}catch(e){}
   $('mask').classList.remove('open');
   setTimeout(render,220);
 }
-function openEditor(){
-  fill(working);
-  $('mask').classList.add('open');
-}
+function openEditor(){fill();$('mask').classList.add('open')}
 
-['inJpy','inCny','inSaving'].forEach(id=>$(id).addEventListener('input',showDerived));
-$('reset').onclick=()=>fill(DEF);
-$('preview').onclick=()=>{
-  const d=read();
-  if(!d){showDerived();return;}
-  working=d;
-  hideEditor();
-};
-$('save').onclick=()=>{
-  const d=read();
-  if(!d){showDerived();return;}
-  working=d;
-  saved={...d};
-  localStorage.setItem(KEY,JSON.stringify(saved));
-  hideEditor();
-};
-$('mask').addEventListener('click',e=>{
-  if(e.target===$('mask')) hideEditor();
+let syncing=false;
+$('inJpy').addEventListener('input',()=>{
+  if(syncing)return;
+  const j=n($('inJpy').value), r=n($('inDealRate').value);
+  if(j>=1 && j<=4000000 && r>0){
+    syncing=true;$('inCny').value=round2(j*r/100).toFixed(2);syncing=false;
+  }
 });
+$('inDealRate').addEventListener('input',()=>{
+  if(syncing)return;
+  const j=n($('inJpy').value), r=n($('inDealRate').value);
+  if(j>=1 && j<=4000000 && r>0){
+    syncing=true;$('inCny').value=round2(j*r/100).toFixed(2);syncing=false;
+  }
+});
+$('inCny').addEventListener('input',()=>{
+  if(syncing)return;
+  const j=n($('inJpy').value), c=n($('inCny').value);
+  if(j>=1 && j<=4000000 && c>=0){
+    syncing=true;$('inDealRate').value=trim4(c/j*100);syncing=false;
+  }
+});
+
+$('cancel').onclick=()=>closeEditor();
+$('save').onclick=()=>{
+  const d={
+    jpy:Math.round(n($('inJpy').value)),
+    dealRate:n($('inDealRate').value),
+    marketRate:n($('inMarketRate').value)
+  };
+  if(!valid(d))return;
+  working=d;saved={...d};
+  localStorage.setItem(KEY,JSON.stringify(saved));
+  closeEditor();
+};
+$('mask').addEventListener('click',e=>{if(e.target===$('mask'))closeEditor()});
 
 let taps=0,t0=0,timer=0;
 $('secret').addEventListener('click',()=>{
   const now=Date.now();
-  if(!t0 || now-t0>3000){taps=1;t0=now;} else taps++;
+  if(!t0||now-t0>3000){taps=1;t0=now}else taps++;
   clearTimeout(timer);
-  timer=setTimeout(()=>{taps=0;t0=0;},3200);
-  if(taps>=5){
-    taps=0;t0=0;clearTimeout(timer);
-    openEditor();
-  }
+  timer=setTimeout(()=>{taps=0;t0=0},3200);
+  if(taps>=5){taps=0;t0=0;clearTimeout(timer);openEditor()}
 });
 window.addEventListener('resize',()=>setTimeout(render,60));
 render();

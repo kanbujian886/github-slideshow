@@ -25,11 +25,34 @@ jobs:
           SDKMANAGER=/usr/local/lib/android/sdk/cmdline-tools/latest/bin/sdkmanager
           yes | "$SDKMANAGER" --licenses >/dev/null || true
           "$SDKMANAGER" "platforms;android-35" "build-tools;35.0.0"
+      - name: Decode bundled screenshot template
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import base64
+          p = Path("app/src/main/assets/template.b64")
+          out = Path("app/src/main/assets/template.webp")
+          out.write_bytes(base64.b64decode(p.read_text().strip(), validate=True))
+          print("template.webp bytes:", out.stat().st_size)
+          PY
+          file app/src/main/assets/template.webp
       - name: Build APK
         env:
           ANDROID_HOME: /usr/local/lib/android/sdk
           ANDROID_SDK_ROOT: /usr/local/lib/android/sdk
         run: gradle assembleDebug
+      - name: Verify APK contains real template image
+        run: |
+          python3 - <<'PY'
+          import zipfile
+          apk="app/build/outputs/apk/debug/app-debug.apk"
+          with zipfile.ZipFile(apk) as z:
+              names=set(z.namelist())
+              assert "assets/template.webp" in names, "template.webp missing from APK"
+              data=z.read("assets/template.webp")
+              assert data[:4] == b"RIFF" and data[8:12] == b"WEBP", "template.webp is not valid WebP"
+              print("verified assets/template.webp bytes:", len(data))
+          PY
       - uses: actions/upload-artifact@v4
         with:
           name: exchange-calculator-apk

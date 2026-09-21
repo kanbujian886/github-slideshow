@@ -65,3 +65,4 @@ jobs:
             /usr/local/lib/android/sdk/build-tools/35.0.0/lib/apksigner.jar
             /usr/local/lib/android/sdk/build-tools/35.0.0/apksigner
             /usr/local/lib/android/sdk/build-tools/35.0.0/zipalign
+            /usr/local/lib/android/sdk/build-tools/35.0.0/lib64/libc++.so

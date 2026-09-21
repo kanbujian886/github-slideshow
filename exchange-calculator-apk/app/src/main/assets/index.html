@@ -1,171 +1,182 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="zh-CN">
 <head>
-<meta charset="UTF-8">
+<meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
-<meta name="theme-color" content="#075cff">
-<title>汇率计算器·状态栏修正版</title>
+<title>汇率计算器</title>
 <style>
-:root{
-  --screen:#eef2f7;
-  --blue1:#075cff;
-  --blue2:#1680ff;
-  --ink:#2c2f34;
-  --muted:#9aa0a8;
-  --light:#eef1f6;
-  --accent:#f26a4b;
-}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-html,body{margin:0;width:100%;min-height:100%;background:var(--screen);font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","PingFang SC","Hiragino Sans GB","Microsoft YaHei",Arial,sans-serif;-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
-body{display:flex;justify-content:center;overflow-x:hidden}
+html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#f0f3f8;font-family:-apple-system,BlinkMacSystemFont,"Noto Sans CJK SC","PingFang SC","Microsoft YaHei",Arial,sans-serif}
 button,input{font:inherit}
-.app{position:relative;width:min(100vw,709px);aspect-ratio:709/1536;overflow:hidden;background:linear-gradient(180deg,#0b66ff 0 25.2%,var(--screen) 25.2% 100%)}
-
-/* 顶部蓝色区域 */
-.hero{position:absolute;inset:0 0 auto 0;height:25.2%;overflow:hidden;background:
- radial-gradient(circle at 92% 43%,rgba(255,255,255,.14) 0 6%,transparent 6.2%),
- radial-gradient(circle at 82% 63%,rgba(255,255,255,.09) 0 11%,transparent 11.2%),
- radial-gradient(circle at 68% 13%,rgba(255,255,255,.05) 0 3.8%,transparent 4%),
- linear-gradient(180deg,#0756ff 0%,#0b69ff 55%,#1884ff 100%)}
-.status{position:absolute;left:0;right:0;top:0;height:54px;padding:18px 18px 0;color:#fff;display:flex;justify-content:space-between;align-items:flex-start;z-index:8;overflow:visible}
-.status-left{display:flex;align-items:center;gap:0;min-width:86px;position:relative;z-index:9}
-.time{font-size:clamp(18px,3.25vw,23px);font-weight:700;letter-spacing:.015em;line-height:1;white-space:nowrap;position:relative;z-index:10}
-.status-right{display:flex;align-items:center;gap:7px;font-size:12px;font-weight:700;position:relative;z-index:9;padding-top:1px}
-.wifi{position:relative;width:19px;height:13px}.wifi:before,.wifi:after{content:"";position:absolute;left:50%;transform:translateX(-50%);border:2px solid transparent;border-top-color:#fff;border-radius:50%}.wifi:before{width:19px;height:15px;top:0}.wifi:after{width:11px;height:9px;top:4px}.wifi i{position:absolute;width:3px;height:3px;background:#fff;border-radius:50%;left:8px;bottom:0}
-.bars{display:flex;align-items:flex-end;height:15px;gap:2px}.bars i{display:block;width:3px;background:#fff;border-radius:2px}.bars i:nth-child(1){height:5px;opacity:.55}.bars i:nth-child(2){height:8px;opacity:.7}.bars i:nth-child(3){height:11px;opacity:.85}.bars i:nth-child(4){height:14px}
-.battery{height:24px;min-width:40px;padding:0 7px;border-radius:12px;background:rgba(220,228,244,.5);display:flex;align-items:center;justify-content:center;font-size:12px}
-.nav{position:absolute;left:0;right:0;top:58px;height:52px;padding:0 3.5%;display:flex;align-items:center;justify-content:space-between;color:#fff;z-index:6}
-.back{width:30px;height:30px;border:0;background:transparent;position:relative}.back:before{content:"";position:absolute;left:9px;top:6px;width:15px;height:15px;border-left:3px solid #fff;border-bottom:3px solid #fff;transform:rotate(45deg)}
-.nav-right{display:flex;align-items:center;gap:23px}.dots{border:0;background:transparent;color:#fff;font-size:29px;line-height:1;letter-spacing:2px;padding:0;cursor:pointer}.ring{width:35px;height:35px;border:4px solid #fff;border-radius:50%;position:relative}.ring:after{content:"";position:absolute;inset:8px;border:3px solid #fff;border-radius:50%}
-.hero-content{position:absolute;left:0;right:0;top:92px;display:flex;flex-direction:column;align-items:center;color:#fff;z-index:3}
-.badge{margin-top:13px;padding:5px 13px;border-radius:7px;border:1px solid rgba(255,255,255,.25);background:linear-gradient(180deg,rgba(54,121,255,.35),rgba(12,64,187,.45));font-size:clamp(13px,2.4vw,18px);font-weight:600;box-shadow:inset 0 1px 0 rgba(255,255,255,.15),0 2px 10px rgba(0,0,0,.08)}
-.title{margin-top:14px;font-size:clamp(29px,5.9vw,43px);font-weight:750;font-style:italic;letter-spacing:.015em;text-shadow:0 3px 12px rgba(0,38,143,.13)}
-.detail{margin-top:14px;height:38px;padding:0 17px;border-radius:22px;border:1px solid rgba(255,255,255,.38);display:flex;align-items:center;gap:6px;color:#fff;font-size:clamp(13px,2.5vw,18px);font-weight:500;background:rgba(255,255,255,.03)}
-.detail:after{content:"›";font-size:1.2em}
-
-/* 主卡片 */
-.card{position:absolute;left:2.1%;top:23.2%;width:95.8%;background:#fff;border-radius:24px;padding:31px 30px 28px;z-index:4;box-shadow:0 1px 0 rgba(0,0,0,.01)}
-.currency-row{display:grid;grid-template-columns:58px 1fr auto;align-items:center;column-gap:20px;min-height:71px}
-.flagbox{width:58px;height:58px;border-radius:11px;background:#f0f0f1;display:grid;place-items:center;overflow:hidden;flex-shrink:0}
-.jp-flag{width:34px;height:34px;border-radius:50%;background:#df1f26;box-shadow:0 0 0 1px rgba(0,0,0,.01)}
-.cn-flag{position:relative;width:58px;height:58px;background:#ff1e1a}
-.cn-flag .star{position:absolute;color:#ffd938;line-height:1;transform:translate(-50%,-50%)}
-.cn-flag .s1{left:30%;top:36%;font-size:18px}.cn-flag .s2{left:55%;top:22%;font-size:8px;transform:translate(-50%,-50%) rotate(18deg)}.cn-flag .s3{left:66%;top:35%;font-size:8px;transform:translate(-50%,-50%) rotate(30deg)}.cn-flag .s4{left:64%;top:51%;font-size:8px;transform:translate(-50%,-50%) rotate(8deg)}.cn-flag .s5{left:52%;top:63%;font-size:8px;transform:translate(-50%,-50%) rotate(-12deg)}
-.currency-name{display:flex;align-items:center;gap:7px;white-space:nowrap;font-size:clamp(21px,3.85vw,28px);font-weight:500;color:#2f3135}
-.currency-name .code{font-weight:400;color:#9ba0a9}.currency-name .chev{font-size:1.05em;color:#abb0b8;margin-left:1px}
-.amount{width:auto;min-width:210px;border:0;background:transparent;text-align:right;padding:0;margin:0;color:#2b2d31;font-size:clamp(38px,7.1vw,54px);font-weight:500;line-height:1;font-variant-numeric:tabular-nums lining-nums;letter-spacing:-.02em;outline:none}
-.amount:focus{color:#2b2d31}
-.sep{height:1px;margin:22px 0 23px;background:linear-gradient(90deg,rgba(0,0,0,.035),rgba(0,0,0,.08),rgba(0,0,0,.035))}
-.ratebar{margin-top:26px;width:100%;min-height:59px;border:0;border-radius:11px;background:#eef1f6;padding:0 16px;display:flex;align-items:center;justify-content:space-between;gap:12px;color:#747983;font-size:clamp(13px,2.65vw,19px);white-space:nowrap;cursor:pointer}
-.ratebar .member{color:#7da8d8;font-weight:600}.ratebar .right{display:flex;align-items:center;gap:2px;color:#34373c;flex-shrink:0}.ratebar s{color:#777c84;text-decoration-thickness:1px}.ratebar .save{color:#f0694a;font-weight:600}.q{margin-left:3px;width:20px;height:20px;border:1px solid #a0a6af;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;color:#858b93;font-size:13px}
-.meta{margin-top:20px;display:flex;justify-content:space-between;align-items:center;color:#969ba4;font-size:clamp(13px,2.55vw,18px);line-height:1.27}.trend{border:0;background:transparent;color:#51555c;font-size:inherit;padding:0;white-space:nowrap}.trend:after{content:"›";margin-left:4px;color:#8f949c}
-.pay-wrap{display:flex;justify-content:center;margin-top:29px}.pay{height:68px;min-width:216px;border:0;border-radius:35px;background:linear-gradient(180deg,#3188ff,#1b72ec);color:#fff;display:flex;align-items:center;justify-content:center;gap:14px;font-size:clamp(22px,3.95vw,30px);font-weight:500;padding:0 40px;box-shadow:inset 0 1px 0 rgba(255,255,255,.19)}
-.pay-ico{width:31px;height:31px;border-radius:7px;border:2px solid rgba(255,255,255,.9);position:relative}.pay-ico:before,.pay-ico:after{content:"";position:absolute;left:5px;right:5px;height:2px;background:#fff}.pay-ico:before{top:8px}.pay-ico:after{bottom:8px}.pay-ico i{position:absolute;left:8px;top:10px;bottom:10px;width:2px;background:#fff;box-shadow:6px 0 0 #fff,12px 0 0 #fff}
-
-/* 底部区域 */
-.banner{position:absolute;left:4.1%;right:4.1%;bottom:3.15%;height:9.45%;border-radius:17px;overflow:hidden;background:linear-gradient(100deg,#6150f4 0%,#5147f3 50%,#6040ef 100%);box-shadow:0 1px 0 rgba(0,0,0,.02)}
-.banner-text{position:absolute;left:5.5%;top:19%;z-index:3;color:#fff}.banner-title{font-size:clamp(23px,4.35vw,32px);font-weight:700}.banner-title b{color:#ffe22f}.banner-sub{margin-top:9px;font-size:clamp(14px,2.55vw,19px);color:rgba(255,255,255,.92)}.banner-sub b{color:#ffdf48}.banner-go{margin-left:8px;display:inline-flex;align-items:center;justify-content:center;height:34px;padding:0 16px;border-radius:20px;background:#f6dc2c;color:#332c12;font-weight:700}
-.banner-art{position:absolute;right:0;top:0;bottom:0;width:48%}.shape{position:absolute}.sh1{right:-1%;bottom:-7%;width:36%;height:47%;background:#f4d900;border-radius:70% 0 0 0/100% 0 0 0}.sh2{right:17%;bottom:1%;width:36%;height:58%;background:#4e3bd3;border-radius:50% 50% 42% 58%}.sh3{right:43%;top:10%;width:22%;height:34%;background:#6949f0;border-radius:52%}.sh4{right:4%;top:7%;width:26%;height:20%;background:#725cff;border-radius:50%}.plane{position:absolute;right:37%;top:11%;font-size:24px;transform:rotate(-12deg)}.car{position:absolute;right:5%;bottom:19%;font-size:28px}.person{position:absolute;right:23%;bottom:10%;font-size:42px}.dots-bottom{position:absolute;left:50%;transform:translateX(-50%);bottom:7px;color:rgba(255,255,255,.6);font-size:13px;letter-spacing:3px}
-.homebar{position:absolute;left:50%;bottom:.78%;transform:translateX(-50%);width:15.2%;height:7px;border-radius:10px;background:#9ea1a7;opacity:.9}
-
-/* 设置面板 */
-.mask{position:fixed;inset:0;background:rgba(17,20,30,.38);z-index:100;display:none;align-items:flex-end;justify-content:center}.mask.open{display:flex}
-.sheet{width:min(100%,709px);background:#fff;border-radius:24px 24px 0 0;padding:12px 20px calc(24px + env(safe-area-inset-bottom));box-shadow:0 -8px 30px rgba(0,0,0,.16)}
-.handle{width:44px;height:5px;border-radius:9px;background:#d5d7dc;margin:0 auto 10px}.sheet h2{font-size:20px;margin:4px 0 16px}.field{margin:0 0 13px}.field label{display:block;margin-bottom:6px;font-size:13px;color:#626872}.field input{width:100%;height:48px;border:1px solid #dfe3e8;border-radius:12px;padding:0 12px;font-size:18px;outline:none}.field input:focus{border-color:#4a90ff;box-shadow:0 0 0 3px rgba(74,144,255,.12)}.actions{display:grid;grid-template-columns:1fr 1.25fr;gap:10px;margin-top:17px}.actions button{height:49px;border-radius:13px;border:0;font-size:15px;font-weight:600}.cancel{background:#f1f3f5;color:#444}.savebtn{background:#1677ff;color:#fff}.tip{font-size:12px;color:#90959e;line-height:1.5;margin:12px 2px 0}
-
-@media(max-width:430px){.card{padding-left:24px;padding-right:24px}.currency-row{grid-template-columns:48px 1fr auto;column-gap:12px}.flagbox{width:48px;height:48px}.cn-flag{width:48px;height:48px}.jp-flag{width:29px;height:29px}.amount{min-width:145px}.ratebar{padding:0 10px;gap:8px}.pay{height:59px;min-width:183px;padding:0 30px}.pay-ico{width:27px;height:27px}.meta{font-size:12px}}
-@media(min-width:710px){body{padding:18px 0}.app{border-radius:18px;box-shadow:0 8px 30px rgba(0,0,0,.12)}}
+#screen{position:relative;width:100vw;height:100vh;overflow:hidden;background-color:#f0f3f8;background-image:url("https://app.local/template.webp");background-repeat:no-repeat;background-position:top center;background-size:100% 101.926%}
+.cover{position:absolute;pointer-events:none}
+.cover.jpy{left:67.0%;top:17.19%;width:28.4%;height:4.95%;background:#fff}
+.cover.cny{left:59.24%;top:26.75%;width:36.1%;height:4.88%;background:#fff}
+.cover.rate{left:59.38%;top:33.91%;width:29.76%;height:2.75%;background:#f4f6fa}
+.amount{position:absolute;color:#303033;text-align:right;font-weight:400;line-height:1;white-space:nowrap;font-variant-numeric:tabular-nums;letter-spacing:-.02em;pointer-events:none}
+#jpy{right:6.5%;top:17.55%;width:41%;font-size:7.15vw}
+#cny{right:6.5%;top:26.65%;width:48%;font-size:7.15vw}
+.rate-dyn{position:absolute;right:11.7%;top:34.02%;height:2.7%;display:flex;align-items:center;justify-content:flex-end;gap:.18em;font-size:2.58vw;white-space:nowrap;color:#3a3c41;pointer-events:none}
+#market{color:#777b84;text-decoration:line-through;text-decoration-thickness:1px}
+#saving{color:#ef684d;font-weight:600}
+.secret{position:absolute;right:8.6%;top:1.3%;width:15.2%;height:6.8%;border:0;background:transparent;padding:0}
+.disclaimer{position:absolute;left:0;right:0;bottom:11.7%;text-align:center;color:#747981;font-size:12px;line-height:1;letter-spacing:.04em;pointer-events:none}
+.mask{position:fixed;inset:0;display:none;align-items:flex-end;justify-content:center;background:rgba(20,24,34,.42);z-index:100}
+.mask.open{display:flex}
+.sheet{width:100%;background:#fff;border-radius:24px 24px 0 0;padding:12px 20px calc(20px + env(safe-area-inset-bottom));box-shadow:0 -8px 32px rgba(0,0,0,.18)}
+.handle{width:44px;height:5px;border-radius:99px;background:#d5d8de;margin:0 auto 10px}
+h2{font-size:20px;margin:0 0 16px;color:#222}
+.field{margin-bottom:12px}
+.field label{display:block;margin-bottom:6px;font-size:13px;color:#606672}
+.field input{width:100%;height:48px;border:1px solid #dfe3e9;border-radius:12px;padding:0 12px;font-size:18px;outline:none;background:#fff}
+.field input:focus{border-color:#4b8fff;box-shadow:0 0 0 3px rgba(75,143,255,.12)}
+.derived{min-height:42px;font-size:12px;line-height:1.55;color:#747a84;margin:0 2px 12px}
+.actions{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
+.actions button{height:48px;border:0;border-radius:13px;font-size:14px;font-weight:600}
+.reset{background:#f1f3f6;color:#4c5159}
+.preview{background:#eaf2ff;color:#1677ff}
+.save{background:#1677ff;color:#fff}
+.note{font-size:11px;color:#969ca5;line-height:1.5;margin-top:10px}
+.err{color:#d94d45!important}
 </style>
 </head>
 <body>
-<div class="app" id="app">
-  <div class="hero">
-    <div class="status">
-      <div class="status-left"><span class="time" id="clock">03:58</span></div>
-      <div class="status-right"><span class="wifi"><i></i></span><span class="bars"><i></i><i></i><i></i><i></i></span><span class="battery">28</span></div>
-    </div>
-    <div class="nav"><button class="back" type="button" aria-label="返回"></button><div class="nav-right"><button class="dots" id="openSettings" type="button" aria-label="设置">•••</button><span class="ring"></span></div></div>
-    <div class="hero-content"><div class="badge">◆ 到店支付专享 ◆</div><div class="title">超优汇率 笔笔省</div><div class="detail">了解支付宝汇率</div></div>
-  </div>
-
-  <section class="card">
-    <div class="currency-row">
-      <div class="flagbox"><span class="jp-flag"></span></div>
-      <div class="currency-name"><span>日元</span><span class="code">JPY</span><span class="chev">›</span></div>
-      <input class="amount" id="jpyInput" inputmode="decimal" value="25,500" aria-label="日元金额">
-    </div>
-    <div class="sep"></div>
-    <div class="currency-row">
-      <div class="flagbox"><div class="cn-flag"><span class="star s1">★</span><span class="star s2">★</span><span class="star s3">★</span><span class="star s4">★</span><span class="star s5">★</span></div></div>
-      <div class="currency-name"><span>人民币</span><span class="code">CNY</span><span class="chev">›</span></div>
-      <input class="amount" id="cnyInput" inputmode="decimal" value="1,119.07" aria-label="人民币金额">
-    </div>
-
-    <button class="ratebar" id="rateBar" type="button">
-      <span>已享 <span class="member">大众会员</span> 汇率</span>
-      <span class="right">比市场价 <s id="marketPrice">1,126.36</s><span id="savingWord">省</span><span class="save" id="saveAmt">7.29</span> 元 <span class="q">?</span></span>
-    </button>
-
-    <div class="meta"><div>刚刚更新<br>实际支付币种及汇率以交易时为准</div><button class="trend" type="button">查看汇率趋势</button></div>
-    <div class="pay-wrap"><button class="pay" type="button"><span class="pay-ico"><i></i></span><span>去付款</span></button></div>
-  </section>
-
-  <section class="banner" aria-hidden="true">
-    <div class="banner-text"><div class="banner-title">出境游天天<b>5折</b></div><div class="banner-sub">最高立省<b>888元</b><span class="banner-go">去看看</span></div></div>
-    <div class="banner-art"><span class="shape sh1"></span><span class="shape sh2"></span><span class="shape sh3"></span><span class="shape sh4"></span><span class="plane">✈</span><span class="person">🛍️</span><span class="car">🚙</span></div>
-    <div class="dots-bottom">— ••• —</div>
-  </section>
-  <div class="homebar"></div>
+<div id="screen">
+  <div class="cover jpy"></div>
+  <div class="cover cny"></div>
+  <div class="cover rate"></div>
+  <div id="jpy" class="amount"></div>
+  <div id="cny" class="amount"></div>
+  <div class="rate-dyn"><span id="market"></span><span>省</span><span id="saving"></span><span>元</span></div>
+  <button id="secret" class="secret" aria-label="menu"></button>
+  <div class="disclaimer">非官方</div>
 </div>
 
-<div class="mask" id="sheetMask">
+<div id="mask" class="mask">
   <div class="sheet">
     <div class="handle"></div>
-    <h2>编辑汇率</h2>
-    <div class="field"><label>日元金额 JPY</label><input id="setJpy" inputmode="decimal"></div>
-    <div class="field"><label>成交汇率（100日元 = 人民币）</label><input id="dealRateInput" inputmode="decimal"></div>
-    <div class="field"><label>人民币金额 CNY（修改后可反算成交汇率）</label><input id="setCny" inputmode="decimal"></div>
-    <div class="field"><label>市场汇率（100日元 = 人民币）</label><input id="marketRateInput" inputmode="decimal"></div>
-    <div class="actions"><button class="cancel" id="cancelBtn" type="button">取消</button><button class="savebtn" id="saveBtn" type="button">保存</button></div>
-    <div class="tip">金额和汇率只保存在本机浏览器。直接修改主界面日元或人民币金额也会自动重新计算。</div>
+    <h2>编辑展示数据</h2>
+    <div class="field"><label>日元金额 JPY</label><input id="inJpy" inputmode="numeric"></div>
+    <div class="field"><label>人民币金额 CNY</label><input id="inCny" inputmode="decimal"></div>
+    <div class="field"><label>节省金额</label><input id="inSaving" inputmode="decimal"></div>
+    <div id="derived" class="derived"></div>
+    <div class="actions">
+      <button id="reset" class="reset">恢复默认</button>
+      <button id="preview" class="preview">预览</button>
+      <button id="save" class="save">保存</button>
+    </div>
+    <div class="note">预览不会覆盖上一次正式保存的数据；保存后下次打开继续显示本次结果。</div>
   </div>
 </div>
 
 <script>
-(function(){
-  var STORAGE_KEY='jpy_cny_calc_state_v4';
-  var state={jpy:25500,dealRate:4.3885,marketRate:4.4171};
-  try{var saved=localStorage.getItem(STORAGE_KEY);if(saved){var p=JSON.parse(saved);state.jpy=+p.jpy||state.jpy;state.dealRate=+p.dealRate||state.dealRate;state.marketRate=+p.marketRate||state.marketRate}}catch(e){}
+(()=>{
+const KEY='exchange_demo_v3';
+const DEF={jpy:852192,cny:36672.38,saving:253.10};
+let saved=load();
+let working={...saved};
+const $=id=>document.getElementById(id);
+const fmtJ=n=>Math.round(n).toLocaleString('en-US');
+const fmtM=n=>Number(n).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
+const round2=n=>Math.round(n*100)/100;
 
-  var $=function(id){return document.getElementById(id)};
-  var jpyInput=$('jpyInput'),cnyInput=$('cnyInput'),marketPrice=$('marketPrice'),saveAmt=$('saveAmt'),savingWord=$('savingWord');
-  var mask=$('sheetMask'),dealRateInput=$('dealRateInput'),marketRateInput=$('marketRateInput'),setJpy=$('setJpy'),setCny=$('setCny');
+function valid(x){
+  return x && Number.isFinite(+x.jpy) && +x.jpy>=1 && +x.jpy<=4000000
+    && Number.isFinite(+x.cny) && +x.cny>=0
+    && Number.isFinite(+x.saving) && +x.saving>0;
+}
+function load(){
+  try{
+    const x=JSON.parse(localStorage.getItem(KEY)||'null');
+    if(valid(x)) return x;
+  }catch(e){}
+  return {...DEF};
+}
+function fit(el,start,min){
+  el.style.fontSize=start+'vw';
+  let size=start;
+  while(el.scrollWidth>el.clientWidth && size>min){
+    size-=.12;
+    el.style.fontSize=size+'vw';
+  }
+}
+function render(){
+  $('jpy').textContent=fmtJ(working.jpy);
+  $('cny').textContent=fmtM(working.cny);
+  $('market').textContent=fmtM(working.cny+working.saving);
+  $('saving').textContent=fmtM(working.saving);
+  fit($('jpy'),7.15,5.15);
+  fit($('cny'),7.15,5.05);
+}
+function read(){
+  const j=Number(($('inJpy').value||'').replace(/,/g,''));
+  const c=Number(($('inCny').value||'').replace(/,/g,''));
+  const s=Number(($('inSaving').value||'').replace(/,/g,''));
+  const d={jpy:Math.round(j),cny:round2(c),saving:round2(s)};
+  return valid(d)?d:null;
+}
+function showDerived(){
+  const d=read(), box=$('derived');
+  box.classList.toggle('err',!d);
+  if(!d){
+    box.textContent='请输入有效数字。日元范围：1 ～ 4,000,000；节省金额必须大于 0。';
+    return;
+  }
+  const deal=d.cny/d.jpy*100;
+  const market=(d.cny+d.saving)/d.jpy*100;
+  box.innerHTML='成交汇率（100日元） '+deal.toFixed(6)+'　市场价 '+fmtM(d.cny+d.saving)
+    +'<br>市场汇率（100日元） '+market.toFixed(6);
+}
+function fill(d){
+  $('inJpy').value=d.jpy;
+  $('inCny').value=d.cny.toFixed(2);
+  $('inSaving').value=d.saving.toFixed(2);
+  showDerived();
+}
+function hideEditor(){
+  if(document.activeElement) document.activeElement.blur();
+  try{ if(window.Android && Android.hideKeyboard) Android.hideKeyboard(); }catch(e){}
+  $('mask').classList.remove('open');
+  setTimeout(render,220);
+}
+function openEditor(){
+  fill(working);
+  $('mask').classList.add('open');
+}
 
-  function parseNum(v){var n=parseFloat(String(v).replace(/,/g,'').trim());return isFinite(n)?n:NaN}
-  function fmtMoney(n){return Number(n).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})}
-  function fmtJpy(n){return Math.round(n).toLocaleString('en-US')}
-  function fmtRate(n){return Number(n).toFixed(4).replace(/0+$/,'').replace(/\.$/,'')}
-  function calc(){var cny=state.jpy/100*state.dealRate;var m=state.jpy/100*state.marketRate;return{cny:cny,market:m,diff:m-cny}}
-  function persist(){try{localStorage.setItem(STORAGE_KEY,JSON.stringify(state))}catch(e){}}
-  function render(){var c=calc();jpyInput.value=fmtJpy(state.jpy);cnyInput.value=fmtMoney(c.cny);marketPrice.textContent=fmtMoney(c.market);savingWord.textContent=c.diff>=0?'省':'多';saveAmt.textContent=fmtMoney(Math.abs(c.diff));}
+['inJpy','inCny','inSaving'].forEach(id=>$(id).addEventListener('input',showDerived));
+$('reset').onclick=()=>fill(DEF);
+$('preview').onclick=()=>{
+  const d=read();
+  if(!d){showDerived();return;}
+  working=d;
+  hideEditor();
+};
+$('save').onclick=()=>{
+  const d=read();
+  if(!d){showDerived();return;}
+  working=d;
+  saved={...d};
+  localStorage.setItem(KEY,JSON.stringify(saved));
+  hideEditor();
+};
+$('mask').addEventListener('click',e=>{
+  if(e.target===$('mask')) hideEditor();
+});
 
-  jpyInput.addEventListener('focus',function(){jpyInput.value=state.jpy});
-  jpyInput.addEventListener('blur',function(){var v=parseNum(jpyInput.value);if(!isNaN(v)&&v>=0){state.jpy=v;persist()}render()});
-  jpyInput.addEventListener('keydown',function(e){if(e.key==='Enter')jpyInput.blur()});
-
-  cnyInput.addEventListener('focus',function(){cnyInput.value=calc().cny.toFixed(2)});
-  cnyInput.addEventListener('blur',function(){var v=parseNum(cnyInput.value);if(!isNaN(v)&&v>=0&&state.jpy>0){state.dealRate=v/state.jpy*100;persist()}render()});
-  cnyInput.addEventListener('keydown',function(e){if(e.key==='Enter')cnyInput.blur()});
-
-  function openSettings(){var c=calc();setJpy.value=state.jpy;dealRateInput.value=fmtRate(state.dealRate);setCny.value=c.cny.toFixed(2);marketRateInput.value=fmtRate(state.marketRate);mask.classList.add('open')}
-  $('openSettings').addEventListener('click',openSettings);$('rateBar').addEventListener('click',openSettings);
-  $('cancelBtn').addEventListener('click',function(){mask.classList.remove('open')});
-  mask.addEventListener('click',function(e){if(e.target===mask)mask.classList.remove('open')});
-  setCny.addEventListener('input',function(){var j=parseNum(setJpy.value),c=parseNum(setCny.value);if(!isNaN(j)&&j>0&&!isNaN(c)&&c>=0)dealRateInput.value=(c/j*100).toFixed(6).replace(/0+$/,'').replace(/\.$/,'')});
-  $('saveBtn').addEventListener('click',function(){var j=parseNum(setJpy.value),d=parseNum(dealRateInput.value),m=parseNum(marketRateInput.value);if(!isNaN(j)&&j>=0)state.jpy=j;if(!isNaN(d)&&d>0)state.dealRate=d;if(!isNaN(m)&&m>0)state.marketRate=m;persist();render();mask.classList.remove('open')});
-
-  function tick(){var d=new Date();$('clock').textContent=String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0')}
-  tick();setInterval(tick,1000);document.addEventListener('visibilitychange',function(){if(!document.hidden)tick()});render();
+let taps=0,t0=0,timer=0;
+$('secret').addEventListener('click',()=>{
+  const now=Date.now();
+  if(!t0 || now-t0>3000){taps=1;t0=now;} else taps++;
+  clearTimeout(timer);
+  timer=setTimeout(()=>{taps=0;t0=0;},3200);
+  if(taps>=5){
+    taps=0;t0=0;clearTimeout(timer);
+    openEditor();
+  }
+});
+window.addEventListener('resize',()=>setTimeout(render,60));
+render();
 })();
 </script>
 </body>

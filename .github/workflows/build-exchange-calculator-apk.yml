@@ -1,8 +1,6 @@
 name: Build Exchange Calculator APK
 
 on:
-  push:
-    branches: [ exchange-calculator-apk ]
   workflow_dispatch:
 
 jobs:

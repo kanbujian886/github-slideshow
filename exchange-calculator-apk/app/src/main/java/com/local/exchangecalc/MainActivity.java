@@ -80,6 +80,12 @@ public class MainActivity extends Activity {
 
     private class AndroidBridge {
         @JavascriptInterface
+        public String getTemplateBase64() {
+            return TemplatePart0.DATA + TemplatePart1.DATA + TemplatePart2.DATA
+                    + TemplatePart3.DATA + TemplatePart4.DATA + TemplatePart5.DATA;
+        }
+
+        @JavascriptInterface
         public void hideKeyboard() {
             runOnUiThread(() -> {
                 View focus = getCurrentFocus();

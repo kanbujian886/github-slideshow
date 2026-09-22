@@ -12,7 +12,7 @@ button,input{font:inherit}
 .cover{position:absolute;pointer-events:none}
 .cover.jpy{left:67.0%;top:17.19%;width:28.4%;height:4.95%;background:#fff}
 .cover.cny{left:59.24%;top:26.75%;width:36.1%;height:4.88%;background:#fff}
-.cover.rate{left:59.38%;top:33.91%;width:26.9%;height:2.75%;background:#f4f6fa}
+.cover.rate{left:43.9%;top:33.91%;width:44.1%;height:2.75%;background:#f4f6fa}
 .amount{position:absolute;color:#303033;text-align:right;font-family:"AlipayNumber","Alibaba Sans 102","DIN Alternate","Helvetica Neue",Arial,sans-serif;font-weight:500;line-height:1;white-space:nowrap;font-variant-numeric:tabular-nums;letter-spacing:-.028em;pointer-events:none;-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
 #jpy{right:6.5%;top:17.55%;width:41%;font-size:7.55vw}
 #cny{right:6.5%;top:26.65%;width:48%;font-size:7.55vw}
@@ -46,7 +46,7 @@ h2{font-size:24px;margin:0 0 22px;color:#111;font-weight:700}
   <div class="cover rate"></div>
   <div id="jpy" class="amount"></div>
   <div id="cny" class="amount"></div>
-  <div class="rate-dyn"><span id="market"></span><span>省</span><span id="saving"></span><span>元</span></div>
+  <div class="rate-dyn"><div id="rateMain" class="rate-main"><span class="rate-label">比市场价</span><span id="market"></span><span class="rate-save-word">省</span><span id="saving"></span><span class="rate-yuan">元</span></div></div>
   <button id="secret" class="secret" aria-label="menu"></button>
   <div class="disclaimer">非官方</div>
 </div>
@@ -104,6 +104,15 @@ function fit(el,start,min){
     el.style.fontSize=size+'vw';
   }
 }
+function fitRate(){
+  const row=$('rateMain');
+  row.style.fontSize='2.58vw';
+  let size=2.58;
+  while(row.scrollWidth>row.clientWidth && size>2.18){
+    size-=0.04;
+    row.style.fontSize=size+'vw';
+  }
+}
 function render(){
   $('jpy').textContent=fmtJ(working.jpy);
   $('cny').textContent=fmtM(calcCny(working));
@@ -111,6 +120,7 @@ function render(){
   $('saving').textContent=fmtM(calcSaving(working));
   fit($('jpy'),7.55,5.15);
   fit($('cny'),7.55,5.05);
+  fitRate();
 }
 function n(v){return Number(String(v||'').replace(/,/g,'').trim())}
 function normalizeRate(v){

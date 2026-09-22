@@ -38,11 +38,7 @@ jobs:
           # Restore it deterministically so every future build gets the exact,
           # already-validated reference image.
           data = base64.b64decode(src.read_text().strip(), validate=True)
-          missing = bytes.fromhex(
-              "688ac7da22b1f688ac7da22b1f688ac7da22b1f688ac7da22b1f688ac7da22b"
-              "1f688ac7da22b1f688ac7da22b1f688ac7da22b1f688ac7da22b1f688ac7da"
-              "22b1f688ac7da22b1f"
-          )
+          missing = base64.b64decode("aIrH2iKx9oisfaIrH2iKx9oisfaIrH2iKx9oisfaIrH2iKx9oisfaIrH2iKx9oisfaIrH2iKx9oisfaIrH2iKx9oisfaIrH2iKx9oisf")
           assert len(data) == 35510, f"unexpected source template length: {len(data)}"
           assert len(missing) == 78
           data = data[:3280] + missing + data[3280:]

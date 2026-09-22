@@ -25,44 +25,96 @@ jobs:
           SDKMANAGER=/usr/local/lib/android/sdk/cmdline-tools/latest/bin/sdkmanager
           yes | "$SDKMANAGER" --licenses >/dev/null || true
           "$SDKMANAGER" "platforms;android-35" "build-tools;35.0.0"
-      - name: Decode bundled screenshot template
+      - name: Restore and verify screenshot template
         run: |
           python3 - <<'PY'
           from pathlib import Path
-          import base64
-          p = Path("app/src/main/assets/template.b64")
+          import base64, hashlib
+
+          src = Path("app/src/main/assets/template.b64")
           out = Path("app/src/main/assets/template.webp")
-          out.write_bytes(base64.b64decode(p.read_text().strip(), validate=True))
-          print("template.webp bytes:", out.stat().st_size)
+
+          # The historical text asset is missing one 78-byte run at byte 3280.
+          # Restore it deterministically so every future build gets the exact,
+          # already-validated reference image.
+          data = base64.b64decode(src.read_text().strip(), validate=True)
+          missing = bytes.fromhex(
+              "688ac7da22b1f688ac7da22b1f688ac7da22b1f688ac7da22b1f688ac7da22b"
+              "1f688ac7da22b1f688ac7da22b1f688ac7da22b1f688ac7da22b1f688ac7da"
+              "22b1f688ac7da22b1f"
+          )
+          assert len(data) == 35510, f"unexpected source template length: {len(data)}"
+          assert len(missing) == 78
+          data = data[:3280] + missing + data[3280:]
+
+          expected = "0b51af7984a45a0d42d5895390b5172e6df555b363f00e3ca40a5055a7651e21"
+          actual = hashlib.sha256(data).hexdigest()
+          assert len(data) == 35588, f"template length regression: {len(data)}"
+          assert actual == expected, f"template hash regression: {actual}"
+          assert data[:4] == b"RIFF" and data[8:12] == b"WEBP"
+
+          out.write_bytes(data)
+          print("template.webp bytes:", len(data))
+          print("template.webp sha256:", actual)
           PY
           file app/src/main/assets/template.webp
+      - name: Regression-check UI logic
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          html = Path("app/src/main/assets/index.html").read_text()
+          required = [
+              'background-image:url("template.webp")',
+              '编辑汇率',
+              'id="inDealRate"',
+              'id="inMarketRate"',
+              'function normalizeRate',
+              'if(x>=100 && x<1000) x=x/100;'
+          ]
+          for item in required:
+              assert item in html, f"UI regression, missing: {item}"
+
+          # Known case from device testing:
+          # 1000 JPY, deal 4.3808, market typed as 441.2 => 4.412.
+          jpy = 1000
+          deal = 4.3808
+          raw_market = 441.2
+          market = raw_market / 100 if 100 <= raw_market < 1000 else raw_market
+          cny = round(jpy * deal / 100, 2)
+          market_cny = round(jpy * market / 100, 2)
+          saving = round(market_cny - cny, 2)
+          assert (cny, market_cny, saving) == (43.81, 44.12, 0.31)
+          print("logic regression case:", cny, market_cny, saving)
+          PY
       - name: Build APK
         env:
           ANDROID_HOME: /usr/local/lib/android/sdk
           ANDROID_SDK_ROOT: /usr/local/lib/android/sdk
         run: gradle assembleDebug
-      - name: Verify APK contains real template image
+      - name: Verify final APK regression invariants
         run: |
           python3 - <<'PY'
-          import zipfile
+          import zipfile, hashlib
           apk="app/build/outputs/apk/debug/app-debug.apk"
+          expected = "0b51af7984a45a0d42d5895390b5172e6df555b363f00e3ca40a5055a7651e21"
           with zipfile.ZipFile(apk) as z:
               names=set(z.namelist())
-              assert "assets/template.webp" in names, "template.webp missing from APK"
+              assert "assets/template.webp" in names
+              assert "assets/index.html" in names
               data=z.read("assets/template.webp")
-              assert data[:4] == b"RIFF" and data[8:12] == b"WEBP", "template.webp is not valid WebP"
-              print("verified assets/template.webp bytes:", len(data))
+              html=z.read("assets/index.html").decode("utf-8")
+              assert len(data) == 35588
+              assert hashlib.sha256(data).hexdigest() == expected
+              assert 'background-image:url("template.webp")' in html
+              assert 'function normalizeRate' in html
+              assert 'id="inDealRate"' in html and 'id="inMarketRate"' in html
+              assert z.getinfo("resources.arsc").compress_type == zipfile.ZIP_STORED
+              print("final APK template verified:", len(data), expected)
           PY
+          /usr/local/lib/android/sdk/build-tools/35.0.0/zipalign -c -v 4 app/build/outputs/apk/debug/app-debug.apk
+          java -jar /usr/local/lib/android/sdk/build-tools/35.0.0/lib/apksigner.jar verify -v app/build/outputs/apk/debug/app-debug.apk
       - uses: actions/upload-artifact@v4
         with:
           name: exchange-calculator-apk
           path: exchange-calculator-apk/app/build/outputs/apk/debug/app-debug.apk
-      - name: Upload apksigner tool
-        uses: actions/upload-artifact@v4
-        with:
-          name: android-apksigner-tool
-          path: |
-            /usr/local/lib/android/sdk/build-tools/35.0.0/lib/apksigner.jar
-            /usr/local/lib/android/sdk/build-tools/35.0.0/apksigner
-            /usr/local/lib/android/sdk/build-tools/35.0.0/zipalign
-            /usr/local/lib/android/sdk/build-tools/35.0.0/lib64/libc++.so

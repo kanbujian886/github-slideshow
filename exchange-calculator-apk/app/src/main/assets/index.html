@@ -113,6 +113,19 @@ function render(){
   fit($('cny'),7.55,5.05);
 }
 function n(v){return Number(String(v||'').replace(/,/g,'').trim())}
+function normalizeRate(v){
+  let x=n(v);
+  if(!Number.isFinite(x) || x<=0) return NaN;
+  // For JPY/CNY this field is "100 JPY = CNY". Common values are around 4.x.
+  // If a user types 441.2 / 438.08, treat it as 4.412 / 4.3808 instead of
+  // allowing an obviously impossible 441.2 rate that explodes the saving amount.
+  if(x>=100 && x<1000) x=x/100;
+  return x;
+}
+function normalizeRateField(el){
+  const x=normalizeRate(el.value);
+  if(Number.isFinite(x)) el.value=trim4(x);
+}
 function fill(){
   $('inJpy').value=Math.round(working.jpy);
   $('inDealRate').value=trim4(working.dealRate);
@@ -130,14 +143,14 @@ function openEditor(){fill();$('mask').classList.add('open')}
 let syncing=false;
 $('inJpy').addEventListener('input',()=>{
   if(syncing)return;
-  const j=n($('inJpy').value), r=n($('inDealRate').value);
+  const j=n($('inJpy').value), r=normalizeRate($('inDealRate').value);
   if(j>=1 && j<=4000000 && r>0){
     syncing=true;$('inCny').value=round2(j*r/100).toFixed(2);syncing=false;
   }
 });
 $('inDealRate').addEventListener('input',()=>{
   if(syncing)return;
-  const j=n($('inJpy').value), r=n($('inDealRate').value);
+  const j=n($('inJpy').value), r=normalizeRate($('inDealRate').value);
   if(j>=1 && j<=4000000 && r>0){
     syncing=true;$('inCny').value=round2(j*r/100).toFixed(2);syncing=false;
   }
@@ -149,15 +162,23 @@ $('inCny').addEventListener('input',()=>{
     syncing=true;$('inDealRate').value=trim4(c/j*100);syncing=false;
   }
 });
+$('inDealRate').addEventListener('blur',()=>{
+  normalizeRateField($('inDealRate'));
+  const j=n($('inJpy').value), r=normalizeRate($('inDealRate').value);
+  if(j>=1 && j<=4000000 && r>0) $('inCny').value=round2(j*r/100).toFixed(2);
+});
+$('inMarketRate').addEventListener('blur',()=>normalizeRateField($('inMarketRate')));
 
 $('cancel').onclick=()=>closeEditor();
 $('save').onclick=()=>{
   const d={
     jpy:Math.round(n($('inJpy').value)),
-    dealRate:n($('inDealRate').value),
-    marketRate:n($('inMarketRate').value)
+    dealRate:normalizeRate($('inDealRate').value),
+    marketRate:normalizeRate($('inMarketRate').value)
   };
   if(!valid(d))return;
+  $('inDealRate').value=trim4(d.dealRate);
+  $('inMarketRate').value=trim4(d.marketRate);
   working=d;saved={...d};
   localStorage.setItem(KEY,JSON.stringify(saved));
   closeEditor();
